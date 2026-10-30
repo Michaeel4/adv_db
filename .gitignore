@@ -1,0 +1,10 @@
+# own database login class, not part of the repo
+ConnectionFactory.java
+
+# build output and IDE files
+out/
+target/
+*.class
+.idea/
+*.iml
+.DS_Store
