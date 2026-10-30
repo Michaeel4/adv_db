@@ -8,4 +8,3 @@ RestartBlocking.java: when a task gets aborted, it does a rollback, closes the c
 
 NoLiveLocks.java: same as RestartBlocking, but every task counts its rollbacks. After 2 rollbacks the task locks the whole table first, so it runs alone and can't be the deadlock victim again. This way no task starves.
 
-To run it you need Postgres, the JDBC driver (pom.xml) and your own ConnectionFactory.java. It's not in the repo.
