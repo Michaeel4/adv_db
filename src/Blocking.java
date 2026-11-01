@@ -140,7 +140,7 @@ public class Blocking {
 		@Override
 		public void run() {
 			Connection con=null;//XXX - Yes there needs to be a separate Connection per blocking taks. Otherwise strange things can happen
-			con = ConnectionFactory.getDefaultParameterConnection(ConnectionFactory.POSTGRESQL);//XXX This is the class you need to create, but does not have to be in the Repo
+			con = ConnectionFactory.getDefaultParameterConnection(ConnectionFactory.POSTGRESQL); // establish connection via ConnectFactory
 			PreparedStatement ps;
 			
 			try {	
