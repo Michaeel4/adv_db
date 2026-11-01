@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class RestartBlocking {
     public static int num_taks=30;
-    public static int num_queries_per_task = 3; // to provoke starvation: increase num_taks, num_queries_per_task and the number of threads
+    public static int num_queries_per_task = 3; // to provoke starvation: increase num_taks, num_queries_per_task and number of threads
 
     Connection con;
     Random rand = new Random(123456);
@@ -163,11 +163,8 @@ public class RestartBlocking {
                 System.out.println("Done task "+task+". I am finisher number "+num_finished);
             } catch (SQLException e) {
                 System.err.println("Task "+task+" "+e.getMessage());
-                // PostgreSQL found a deadlock, chose this transaction as victim and aborted it (VO2 p.21).
-                // Restart from the client side (VO1 p.9: "Restart the transaction"):
-                // rollback() ends the aborted transaction, close() frees the connection,
-                // run() starts the whole transaction again with a new connection.
-
+                
+                // rollback if a deadlock was found and re-run. 
                 try {
                     con.rollback();
                     con.close();
