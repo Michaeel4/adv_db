@@ -9,32 +9,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * 
- * @author Martin Schaeler martin.schaeler@plus.ac.at
- * 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
-*/
 
 public class NoLiveLocks {
     public static int num_taks=30;
-    public static int num_queries_per_task = 3; // to provoke starvation: increase num_taks, num_queries_per_task and the number of threads
+    public static int num_queries_per_task = 3; // to provoke starvation: increase num_taks, num_queries_per_task or threads
 
     Connection con;
     Random rand = new Random(123456);
@@ -127,7 +105,6 @@ public class NoLiveLocks {
         final double [] start_range;
         final double [] stop_range;
         // Counts how often this task was rolled back as deadlock victim.
-        // It is a field of the task (not inside run()), so the number survives every restart.
         int rollbacks = 0;
 
         public Blocker(int id){
@@ -143,19 +120,17 @@ public class NoLiveLocks {
         @Override
         public void run() {
             Connection con=null;//XXX - Yes there needs to be a separate Connection per blocking taks. Otherwise strange things can happen
-            con = ConnectionFactory.getDefaultParameterConnection(ConnectionFactory.POSTGRESQL);//XXX This is the class you need to create, but does not have to be in the Repo
+            con = ConnectionFactory.getDefaultParameterConnection(ConnectionFactory.POSTGRESQL);//XXX
             PreparedStatement ps;
 
             try {
-                // Names this connection "Task <n> (<k> rollbacks)".
-                // pg_stat_activity shows this name, so we see which task waits and which task blocks.
+                // pg_stat_activity
                 con.createStatement().execute("SET application_name = 'Task " + task + " (" + rollbacks + " rollbacks)'");
                 con.setAutoCommit(false);
                 con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-                // Starvation fix (VO2 p.21): a task that was the deadlock victim 2 times gets priority.
-                // LOCK TABLE takes an exclusive lock on the whole table (VO2 p.5), so no other transaction can lock any row.
+                // Starvation fix task that was the deadlock victim 2 times gets priority.
+                // LOCK TABLE takes an exclusive lock on the whole table so no other transaction can lock any row.
                 // The task runs alone, cannot be a victim again and commits. The lock is released at commit (VO2 p.11).
-                // It must come after setAutoCommit(false), because LOCK TABLE only works inside a transaction.
                 if (rollbacks >= 2) {
                     con.createStatement().execute("LOCK TABLE blocking_data");
                     System.out.println("Task " + task + " has priority: runs alone");
@@ -178,10 +153,9 @@ public class NoLiveLocks {
                 System.out.println("Done task "+task+" after "+rollbacks+" rollbacks. I am finisher number "+num_finished);
             } catch (SQLException e) {
                 System.err.println("Task "+task+" "+e.getMessage());
-                // PostgreSQL found a deadlock, chose this transaction as victim and aborted it (VO2 p.21). Count it.
+                // increase rollback
                 rollbacks++;
 
-                // Restart from the client side (VO1 p.9: "Restart the transaction"):
                 // rollback() ends the aborted transaction, close() frees the connection,
                 // run() starts the whole transaction again with a new connection.
 
